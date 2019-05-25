@@ -2,7 +2,6 @@ package digitalblasphemy
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/PuerkitoBio/goquery"
 )
@@ -27,7 +26,6 @@ func GetIndex(resolution string, creds *Credentials) ([]*Wallpaper, error) {
 	}
 
 	url := index + indexURLSort
-	fmt.Println(url)
 	reader, err := fetch(url, creds)
 	if err != nil {
 		return nil, err
@@ -70,4 +68,19 @@ func GetFreebiesIndex() ([]*Wallpaper, error) {
 		}
 	}
 	return result, nil
+}
+
+// IsValidResolution checks if the given resolution is valid.
+func IsValidResolution(resolution string) bool {
+	_, ok := indexURLForResolution[resolution]
+	return ok
+}
+
+// GetValidResolutions returns the list of all valid resolutions.
+func GetValidResolutions() []string {
+	result := make([]string, 0, len(indexURLForResolution))
+	for resolution := range indexURLForResolution {
+		result = append(result, resolution)
+	}
+	return result
 }
