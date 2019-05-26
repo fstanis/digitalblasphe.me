@@ -10,9 +10,13 @@ import (
 
 const userAgent = "https://github.com/fstanis/digitalblaspheme"
 
-// ErrInvalidCredentials happens when the credentials were rejected by the
-// server.
-var ErrInvalidCredentials = errors.New("got unauthorized from server")
+var (
+	// ErrInvalidCredentials happens when the credentials were rejected by the
+	// server.
+	ErrInvalidCredentials = errors.New("got unauthorized from server")
+
+	httpClient httpDoer = http.DefaultClient
+)
 
 // Credentials holds the username and password used to authorize in the members
 // section of the website.
@@ -67,5 +71,9 @@ func httpRequest(method string, url string, creds *Credentials) (*http.Response,
 	if creds != nil && strings.HasPrefix(url, "https://") {
 		req.SetBasicAuth(creds.Username, creds.Password)
 	}
-	return http.DefaultClient.Do(req)
+	return httpClient.Do(req)
+}
+
+type httpDoer interface {
+	Do(*http.Request) (*http.Response, error)
 }

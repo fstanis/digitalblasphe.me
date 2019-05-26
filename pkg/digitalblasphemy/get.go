@@ -6,9 +6,15 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
-// ErrInvalidResolution happens when the requested resolution doesn't exist
-// on the website.
-var ErrInvalidResolution = errors.New("invalid resolution")
+var (
+	// ErrInvalidResolution happens when the requested resolution doesn't exist
+	// on the website.
+	ErrInvalidResolution = errors.New("invalid resolution")
+
+	// ErrNoWallpapersFound happens when the server response is parsed successfully,
+	// but no valid items are found.
+	ErrNoWallpapersFound = errors.New("zero wallpapers returned from server")
+)
 
 // Wallpaper is a single wallpaper image that can be downloaded from the
 // website.
@@ -38,6 +44,10 @@ func GetIndex(resolution string, creds *Credentials) ([]*Wallpaper, error) {
 	}
 
 	list := parseIndex(doc, resolution)
+	if len(list) == 0 {
+		return nil, ErrNoWallpapersFound
+	}
+
 	result := make([]*Wallpaper, len(list))
 	for i, filename := range list {
 		submatches := urlRegexpForResolution[resolution].FindStringSubmatch(filename)
@@ -53,11 +63,20 @@ func GetIndex(resolution string, creds *Credentials) ([]*Wallpaper, error) {
 // GetFreebiesIndex returns the list of all wallpaper URLs that are available
 // for free.
 func GetFreebiesIndex() ([]*Wallpaper, error) {
-	doc, err := goquery.NewDocument(urlFreebies)
+	reader, err := fetch(urlFreebies, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer reader.Close()
+
+	doc, err := goquery.NewDocumentFromReader(reader)
 	if err != nil {
 		return nil, err
 	}
 	list := parseFreebies(doc)
+	if len(list) == 0 {
+		return nil, ErrNoWallpapersFound
+	}
 
 	result := make([]*Wallpaper, len(list))
 	for i, id := range list {

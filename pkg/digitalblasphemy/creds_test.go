@@ -4,17 +4,48 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"io"
+	"net/http"
+	"strings"
 	"testing"
 )
 
+type mockHTTPClient struct {
+	lastRequest      *http.Request
+	responseToReturn *http.Response
+}
+
+func (m *mockHTTPClient) Do(req *http.Request) (*http.Response, error) {
+	m.lastRequest = req
+	return m.responseToReturn, nil
+}
+
 func TestValidate(t *testing.T) {
-	invalidCreds := &Credentials{"invalid", "invalid"}
-	if invalidCreds.Validate() != ErrInvalidCredentials {
-		t.Fatal("invalid credentials should return ErrInvalidCredentials")
+	mock := &mockHTTPClient{
+		responseToReturn: &http.Response{
+			StatusCode: http.StatusOK,
+		},
+	}
+	httpClient = mock
+
+	creds := &Credentials{"user", "password"}
+	if err := creds.Validate(); err != nil {
+		t.Errorf("expected no error for Validate, got %v", err)
+	}
+	req := mock.lastRequest
+	if req.Method != "HEAD" {
+		t.Errorf("expected Validate to use HEAD method, got %v", req.Method)
+	}
+	if req.URL.String() != urlMembers {
+		t.Errorf("expected Validate to use %q URL, got %q", urlMembers, req.URL.String())
+	}
+	if !strings.Contains(req.Header.Get("Authorization"), "Basic ") {
+		t.Error("expected Validate to use basic authorization")
 	}
 }
 
 func TestFetch(t *testing.T) {
+	httpClient = http.DefaultClient
+
 	reader, err := FetchWallpaper(&Wallpaper{
 		ID:         "portals1",
 		URL:        "https://secure.digitalblasphemy.com/graphics/HDfree/portals1HDfree.jpg",
