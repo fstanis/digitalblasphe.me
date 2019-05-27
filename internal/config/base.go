@@ -1,8 +1,7 @@
 package config
 
 import (
-	"io/ioutil"
-	"path/filepath"
+	"log"
 
 	"github.com/shibukawa/configdir"
 	yaml "gopkg.in/yaml.v2"
@@ -10,32 +9,28 @@ import (
 
 const (
 	appName        = "digitalblasphe.me"
-	configFileName = "config.yaml"
 	keyringService = appName
 )
 
 var (
-	// Directory is the target directory for the config file.
-	configDirectory string
-	configPath      = configFileName
+	// Filename is the filename of the config file.
+	Filename = "config.yaml"
+
+	configFolder *configdir.Config
 )
 
 func init() {
 	dirs := configdir.New("", appName).QueryFolders(configdir.Global)
 	if len(dirs) > 0 {
 		dirs[0].MkdirAll()
-		configDirectory = dirs[0].Path
-		configPath = PathInFolder(configFileName)
+		configFolder = dirs[0]
+	} else {
+		log.Fatal("Failed to find global config folder")
 	}
 }
 
-// PathInFolder returns a path in the same folder as the config file.
-func PathInFolder(filename string) string {
-	return filepath.Join(configDirectory, filename)
-}
-
-func load(filename string, conf interface{}) error {
-	data, err := ioutil.ReadFile(filename)
+func load(conf interface{}) error {
+	data, err := configFolder.ReadFile(Filename)
 	if err != nil {
 		return err
 	}
@@ -43,11 +38,11 @@ func load(filename string, conf interface{}) error {
 	return yaml.Unmarshal(data, conf)
 }
 
-func save(filename string, conf interface{}) error {
+func save(conf interface{}) error {
 	data, err := yaml.Marshal(conf)
 	if err != nil {
 		return err
 	}
 
-	return ioutil.WriteFile(filename, data, 0644)
+	return configFolder.WriteFile(Filename, data)
 }

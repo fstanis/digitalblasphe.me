@@ -39,13 +39,22 @@ func TestGetIndex(t *testing.T) {
 	if len(list) != 1 {
 		t.Errorf("expected 1 item in index, got %d", len(list))
 	}
-	want := &Wallpaper{
+	want := Wallpaper{
 		ID:         "second",
 		URL:        "https://secure.digitalblasphemy.com/content/jpgs/1024st/second1024st.jpg",
 		Resolution: "1024x768",
 	}
 	if !reflect.DeepEqual(list[0], want) {
 		t.Errorf("expected wallpaper %+v, got %+v", want, list[0])
+	}
+
+	mock.lastRequest = nil
+	_, err = GetIndex("1024x768", creds)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if mock.lastRequest != nil {
+		t.Error("expected second request for index to not make a new HTTP request")
 	}
 }
 
@@ -65,7 +74,7 @@ func TestGetFreebiesIndex(t *testing.T) {
 
 	list, err := GetFreebiesIndex()
 	if err != nil {
-		t.Fatalf("failed to get freebies with error %v", err)
+		t.Fatal(err)
 	}
 
 	req := mock.lastRequest
@@ -78,5 +87,14 @@ func TestGetFreebiesIndex(t *testing.T) {
 
 	if len(list) != 6 {
 		t.Errorf("excepted 6 items in index, got %d", len(list))
+	}
+
+	mock.lastRequest = nil
+	_, err = GetFreebiesIndex()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if mock.lastRequest != nil {
+		t.Error("expected second request for index to not make a new HTTP request")
 	}
 }

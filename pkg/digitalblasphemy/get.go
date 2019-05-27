@@ -25,10 +25,14 @@ type Wallpaper struct {
 }
 
 // GetIndex returns the list of all wallpaper URLs for the given resolution.
-func GetIndex(resolution string, creds *Credentials) ([]*Wallpaper, error) {
+func GetIndex(resolution string, creds *Credentials) ([]Wallpaper, error) {
 	index, ok := indexURLForResolution[resolution]
 	if !ok {
 		return nil, ErrInvalidResolution
+	}
+
+	if index := cache.getIndex(resolution); index != nil {
+		return index, nil
 	}
 
 	url := index + indexURLSort
@@ -48,21 +52,27 @@ func GetIndex(resolution string, creds *Credentials) ([]*Wallpaper, error) {
 		return nil, ErrNoWallpapersFound
 	}
 
-	result := make([]*Wallpaper, len(list))
+	result := make([]Wallpaper, len(list))
 	for i, filename := range list {
 		submatches := urlRegexpForResolution[resolution].FindStringSubmatch(filename)
-		result[i] = &Wallpaper{
+		result[i] = Wallpaper{
 			ID:         submatches[1],
 			URL:        index + filename,
 			Resolution: resolution,
 		}
 	}
+
+	cache.setIndex(resolution, result)
 	return result, nil
 }
 
 // GetFreebiesIndex returns the list of all wallpaper URLs that are available
 // for free.
-func GetFreebiesIndex() ([]*Wallpaper, error) {
+func GetFreebiesIndex() ([]Wallpaper, error) {
+	if index := cache.getIndexFreebies(); index != nil {
+		return index, nil
+	}
+
 	reader, err := fetch(urlFreebies, nil)
 	if err != nil {
 		return nil, err
@@ -78,14 +88,16 @@ func GetFreebiesIndex() ([]*Wallpaper, error) {
 		return nil, ErrNoWallpapersFound
 	}
 
-	result := make([]*Wallpaper, len(list))
+	result := make([]Wallpaper, len(list))
 	for i, id := range list {
-		result[i] = &Wallpaper{
+		result[i] = Wallpaper{
 			ID:         id,
 			URL:        makeFreebieURL(id),
 			Resolution: "1920x1080",
 		}
 	}
+
+	cache.setIndexFreebies(result)
 	return result, nil
 }
 

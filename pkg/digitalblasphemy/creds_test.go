@@ -1,9 +1,8 @@
 package digitalblasphemy
 
 import (
-	"crypto/sha256"
-	"fmt"
-	"io"
+	"bytes"
+	"io/ioutil"
 	"net/http"
 	"strings"
 	"testing"
@@ -44,28 +43,37 @@ func TestValidate(t *testing.T) {
 }
 
 func TestFetch(t *testing.T) {
-	httpClient = http.DefaultClient
+	mock := &mockHTTPClient{
+		responseToReturn: &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       ioutil.NopCloser(bytes.NewBuffer([]byte("example"))),
+		},
+	}
+	httpClient = mock
 
-	reader, err := FetchWallpaper(&Wallpaper{
-		ID:         "portals1",
-		URL:        "https://secure.digitalblasphemy.com/graphics/HDfree/portals1HDfree.jpg",
+	w := Wallpaper{
+		ID:         "example",
+		URL:        "https://example.com/",
 		Resolution: "1920x1080",
-	}, nil)
+	}
+
+	filename, err := FetchWallpaper(w, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer reader.Close()
-
-	hash := getHash(reader)
-	if hash != "34f97c90805efd5c5da5db73efd66807cfcaeeb6b7eabd7741c8b5520e5eea86" {
-		t.Fatalf("invalid hash: %s", hash)
+	if mock.lastRequest.URL.String() != w.URL {
+		t.Errorf("expected URL to be %q, got %q", w.URL, mock.lastRequest.URL.String())
 	}
-}
+	mock.lastRequest = nil
 
-func getHash(r io.ReadCloser) string {
-	h := sha256.New()
-	if _, err := io.Copy(h, r); err != nil {
-		return ""
+	filename2, err := FetchWallpaper(w, nil)
+	if err != nil {
+		t.Fatal(err)
 	}
-	return fmt.Sprintf("%x", h.Sum(nil))
+	if mock.lastRequest != nil {
+		t.Error("expected second Fetch to make no HTTP request")
+	}
+	if filename != filename2 {
+		t.Errorf("expected %q to be the same as %q", filename, filename2)
+	}
 }

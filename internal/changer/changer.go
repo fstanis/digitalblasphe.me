@@ -1,17 +1,13 @@
 package changer
 
 import (
-	"io"
 	"math/rand"
-	"os"
 
 	setbackground "github.com/fstanis/setbackground/go"
 
 	"github.com/fstanis/digitalblasphe.me/internal/config"
 	"github.com/fstanis/digitalblasphe.me/pkg/digitalblasphemy"
 )
-
-const filename = "digitalblasphemy.jpg"
 
 // Apply changes the desktop background based on information from the config
 // file.
@@ -53,7 +49,7 @@ func changeToLatest(conf *config.Config) error {
 	return downloadAndSetBackground(index[0], creds)
 }
 
-func getIndex(conf *config.Config) ([]*digitalblasphemy.Wallpaper, *digitalblasphemy.Credentials, error) {
+func getIndex(conf *config.Config) ([]digitalblasphemy.Wallpaper, *digitalblasphemy.Credentials, error) {
 	creds, err := conf.LoadCredentials()
 	if err != nil {
 		return nil, nil, err
@@ -65,19 +61,11 @@ func getIndex(conf *config.Config) ([]*digitalblasphemy.Wallpaper, *digitalblasp
 	return index, creds, nil
 }
 
-func downloadAndSetBackground(wallpaper *digitalblasphemy.Wallpaper, creds *digitalblasphemy.Credentials) error {
-	data, err := digitalblasphemy.FetchWallpaper(wallpaper, creds)
+func downloadAndSetBackground(wallpaper digitalblasphemy.Wallpaper, creds *digitalblasphemy.Credentials) error {
+	filename, err := digitalblasphemy.FetchWallpaper(wallpaper, creds)
 	if err != nil {
 		return nil
 	}
-	defer data.Close()
 
-	filepath := config.PathInFolder(filename)
-	file, err := os.Create(filepath)
-	if err != nil {
-		return err
-	}
-	io.Copy(file, data)
-
-	return setbackground.SetBackground(filepath, setbackground.StyleCenter)
+	return setbackground.SetBackground(filename, setbackground.StyleCenter)
 }

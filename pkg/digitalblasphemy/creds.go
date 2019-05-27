@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-const userAgent = "https://github.com/fstanis/digitalblaspheme"
+const userAgent = "https://github.com/fstanis/digitalblasphe.me"
 
 var (
 	// ErrInvalidCredentials happens when the credentials were rejected by the
@@ -42,8 +42,15 @@ func (c *Credentials) Validate() error {
 
 // FetchWallpaper downloads the given wallpaper, optionally with the provided
 // credentials.
-func FetchWallpaper(wallpaper *Wallpaper, creds *Credentials) (io.ReadCloser, error) {
-	return fetch(wallpaper.URL, creds)
+func FetchWallpaper(wallpaper Wallpaper, creds *Credentials) (string, error) {
+	if filename := cache.getWallpaper(wallpaper); filename != "" {
+		return filename, nil
+	}
+	data, err := fetch(wallpaper.URL, creds)
+	if err != nil {
+		return "", err
+	}
+	return cache.putWallpaper(wallpaper, data)
 }
 
 func fetch(url string, creds *Credentials) (io.ReadCloser, error) {

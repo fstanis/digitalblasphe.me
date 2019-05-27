@@ -2,7 +2,6 @@ package config
 
 import (
 	"errors"
-	"log"
 
 	keyring "github.com/zalando/go-keyring"
 
@@ -25,19 +24,17 @@ type Config struct {
 	Random     bool
 }
 
-// LoadConfig loads the config file from the given location.
-func LoadConfig() (*Config, error) {
+// Load loads the config file from the given location.
+func Load() (*Config, error) {
 	var conf Config
 
-	if err := load(configPath, &conf); err != nil {
+	if err := load(&conf); err != nil {
 		return nil, err
 	}
 
 	if !conf.Validate() {
 		return nil, ErrInvalidConfig
 	}
-
-	log.Printf("Loaded config from: %s", configPath)
 
 	return &conf, nil
 }
@@ -48,11 +45,9 @@ func (c *Config) Save() error {
 		return ErrInvalidConfig
 	}
 
-	if err := save(configPath, c); err != nil {
+	if err := save(c); err != nil {
 		return err
 	}
-
-	log.Printf("Saved config to: %s", configPath)
 
 	return nil
 }
