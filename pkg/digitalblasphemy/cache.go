@@ -13,9 +13,10 @@ import (
 )
 
 const (
-	cacheName           = "digitalblasphemy"
-	cacheDataFilename   = "data"
-	cachedIndexDuration = time.Hour * 24
+	cacheName               = "digitalblasphemy"
+	cacheDataFilename       = "data"
+	cachedIndexDuration     = time.Hour * 24
+	cachedWallpaperDuration = time.Hour * 24 * 30
 )
 
 var (
@@ -40,7 +41,6 @@ func init() {
 
 type cacheData struct {
 	WallpaperMap map[Wallpaper]string
-	Wallpapers   []Wallpaper
 
 	Indexes      map[string]cachedIndex
 	FreebieIndex cachedIndex
@@ -52,28 +52,32 @@ type cachedIndex struct {
 }
 
 func (c *cacheData) init() {
-	if cache.WallpaperMap == nil {
-		cache.WallpaperMap = make(map[Wallpaper]string)
+	if c.WallpaperMap == nil {
+		c.WallpaperMap = make(map[Wallpaper]string)
 	}
-	if cache.Indexes == nil {
-		cache.Indexes = make(map[string]cachedIndex)
+	if c.Indexes == nil {
+		c.Indexes = make(map[string]cachedIndex)
 	}
 }
 
 func (c *cacheData) garbageCollect() error {
-	if len(c.Wallpapers) > 10 {
-		for i := 0; i < 10; i++ {
-			wallpaper := c.Wallpapers[i]
-			filename := c.WallpaperMap[wallpaper]
-			if _, err := os.Stat(filename); os.IsNotExist(err) {
-				continue
-			}
-			if err := os.Remove(filename); err != nil {
-				return err
-			}
-			delete(c.WallpaperMap, wallpaper)
+	matches, err := filepath.Glob(filepath.Join(cacheFolder.Path, "*.jpg"))
+	if err != nil {
+		return err
+	}
+
+	removed := make(map[string]bool)
+	for _, filename := range matches {
+		stat, err := os.Stat(filename)
+		if err != nil || time.Since(stat.ModTime()) > cachedWallpaperDuration {
+			os.Remove(filename)
+			removed[filename] = true
 		}
-		c.Wallpapers = c.Wallpapers[10:]
+	}
+	for key, filename := range c.WallpaperMap {
+		if removed[filename] {
+			delete(c.WallpaperMap, key)
+		}
 	}
 	return nil
 }
@@ -111,17 +115,14 @@ func (c *cacheData) getWallpaper(w Wallpaper) string {
 		return ""
 	}
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
+		delete(c.WallpaperMap, w)
 		return ""
 	}
 	return filename
 }
 
 func (c *cacheData) putWallpaper(w Wallpaper, data io.Reader) (string, error) {
-	if filename, exists := c.WallpaperMap[w]; exists {
-		if _, err := os.Stat(filename); os.IsExist(err) {
-			os.Remove(filename)
-		}
-	}
+	c.garbageCollect()
 	filename := filepath.Join(cacheFolder.Path, fmt.Sprintf("cache%d.jpg", rand.Int()))
 
 	cacheFolder.MkdirAll()
@@ -133,7 +134,6 @@ func (c *cacheData) putWallpaper(w Wallpaper, data io.Reader) (string, error) {
 	io.Copy(f, data)
 
 	c.WallpaperMap[w] = filename
-	c.Wallpapers = append(c.Wallpapers, w)
 
 	return filename, nil
 }
