@@ -3,28 +3,34 @@ package main
 import (
 	"log"
 	"math/rand"
+	"os"
 	"time"
 
-	"github.com/fstanis/digitalblasphe.me/internal/changer"
+	"github.com/urfave/cli"
+
+	"github.com/fstanis/digitalblasphe.me/internal/actions"
 	"github.com/fstanis/digitalblasphe.me/internal/config"
-	"github.com/fstanis/digitalblasphe.me/pkg/digitalblasphemy"
 )
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
-	digitalblasphemy.LoadCache()
 
-	conf, err := config.Load()
-	if err != nil {
-		conf, err = config.FromSurvey()
-		if err != nil {
-			log.Fatal(err)
-		}
-		conf.Save()
+	app := cli.NewApp()
+	app.Name = "digitalblasphe.me"
+	app.Usage = "changes the desktop wallpaper by downloading it from digitalblasphemy.com"
+	app.Action = actions.Default
+	app.Commands = []cli.Command{
+		actions.Apply,
+		actions.Configure,
+		actions.Install,
 	}
-	if err := changer.Apply(conf); err != nil {
+
+	if conf, err := config.Load(); err == nil {
+		actions.Config = conf
+	}
+
+	err := app.Run(os.Args)
+	if err != nil {
 		log.Fatal(err)
 	}
-
-	digitalblasphemy.SaveCache()
 }

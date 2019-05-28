@@ -2,10 +2,15 @@ package config
 
 import (
 	"errors"
+	"time"
 
 	keyring "github.com/zalando/go-keyring"
 
 	"github.com/fstanis/digitalblasphe.me/pkg/digitalblasphemy"
+)
+
+const (
+	MinimumFrequency = time.Minute * 10
 )
 
 var (
@@ -22,6 +27,7 @@ type Config struct {
 	Username   string
 	Resolution string
 	Random     bool
+	Frequency  time.Duration
 }
 
 // Load loads the config file from the given location.
@@ -54,6 +60,10 @@ func (c *Config) Save() error {
 
 // Validate checks if the config object is valid.
 func (c *Config) Validate() bool {
+	if c.Frequency < MinimumFrequency && c.Frequency != 0 {
+		return false
+	}
+
 	if c.UseFree {
 		return true
 	}

@@ -2,6 +2,7 @@ package config
 
 import (
 	"log"
+	"path/filepath"
 
 	"github.com/shibukawa/configdir"
 	yaml "gopkg.in/yaml.v2"
@@ -27,6 +28,11 @@ func init() {
 	} else {
 		log.Fatal("Failed to find global config folder")
 	}
+}
+
+// FilePath returns a path in the same directory as the config file.
+func FilePath(filename string) string {
+	return filepath.Join(configFolder.Path, filename)
 }
 
 func load(conf interface{}) error {

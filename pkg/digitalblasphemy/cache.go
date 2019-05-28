@@ -35,6 +35,16 @@ func SaveCache() error {
 	return cache.save()
 }
 
+// GetCachedCurrent gets the current wallpaper ID from the cache.
+func GetCachedCurrent() string {
+	return cache.CurrentID
+}
+
+// SetCachedCurrent sets the current wallpaper ID in the cache.
+func SetCachedCurrent(id string) {
+	cache.CurrentID = id
+}
+
 func init() {
 	cache.init()
 }
@@ -44,6 +54,8 @@ type cacheData struct {
 
 	Indexes      map[string]cachedIndex
 	FreebieIndex cachedIndex
+
+	CurrentID string
 }
 
 type cachedIndex struct {
